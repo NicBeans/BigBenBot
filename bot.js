@@ -41,9 +41,9 @@ const task = cron.schedule('0 0 */1 * * *', async () => {
 	let { hour, amPm, timezoneOffsetString } = getTimeInfo();
 	// console.log('1min');
 	// if text channel was defined send message in chat
-	if (textChannel) {
-		textChannel.send(`The time is now ${hour}:00 ${amPm} GMT${timezoneOffsetString}`);
-	}
+	// if (textChannel) {
+	// 	textChannel.send(`The time is now ${hour}:00 ${amPm} GMT${timezoneOffsetString}`);
+	// }
 
 	// check if VC defined in config is empty
 	if (voiceChannel.members.size >= 1) {
