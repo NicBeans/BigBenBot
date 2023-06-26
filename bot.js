@@ -4,7 +4,7 @@ const cron = require('node-cron');
 const { createAudioPlayer, NoSubscriberBehavior, AudioPlayerStatus, createAudioResource, joinVoiceChannel  } = require('@discordjs/voice');
 
 
-const { TOKEN, VOICE_CHANNEL_ID, GUILD_ID, TEXT_CHANNEL_ID, MATCH_DINGS_WITH_HOUR } = process.env;
+const { TOKEN, VOICE_CHANNEL_ID, GUILD_ID, TEXT_CHANNEL_ID, VOICE_CHANNEL_ID_WORK } = process.env;
 
 const client = new Client({ intents: [
 	GatewayIntentBits.Guilds,
@@ -18,7 +18,7 @@ const client = new Client({ intents: [
 	GatewayIntentBits.MessageContent,
   ]});
 
-let guild, voiceChannel, textChannel ;
+let guild, voiceChannel, voiceChannelWork, textChannel ;
 
 // When bot comes online check the guild and voice channel are valid
 // if they are not found the program will exit
@@ -26,13 +26,14 @@ client.on('ready', async () => {
 	try {
 		guild = await client.guilds.fetch(GUILD_ID);
 		voiceChannel = guild.channels.cache.get(VOICE_CHANNEL_ID);
+		voiceChannelWork = guild.channels.cache.get(VOICE_CHANNEL_ID_WORK);
 	} catch (error) {
 		console.log(error);
 		process.exit(1);
 	}
 	textChannel = guild.channels.cache.get(TEXT_CHANNEL_ID);
 	console.log('Big Ben Ready...');
-	// console.log(guild, voiceChannel, textChannel)
+	//console.log(guild, voiceChannel, voiceChannelWork, textChannel)
 	client.user.setPresence({ activities: [{ name: 'the waiting game...', }], status: 'idle' });
 });
 
@@ -55,7 +56,6 @@ const task = cron.schedule('0 0 */1 * * *', async () => {
 				guildId: guild.id,
 				adapterCreator: guild.voiceAdapterCreator,
 			});
-			//console.log(channelId, guildId)
 			// counter for looping
 			let count = 1;
 		
@@ -71,37 +71,37 @@ const task = cron.schedule('0 0 */1 * * *', async () => {
 					connection.destroy();
 					client.user.setPresence({ activities: [{ name: 'the waiting game...', }], status: 'idle' });
 				})
+			})();
+		} catch(error) {
+			console.log(error);
+		}
+	}
+// });
 
+	if (voiceChannelWork.members.size >= 1) {
+		try {
+			client.user.setPresence({ activities: [{ name: 'BONG', }], status: 'online' });
+			// connect to voice channel
+			const connection = await joinVoiceChannel({
+				channelId: voiceChannelWork.id,
+				guildId: guild.id,
+				adapterCreator: guild.voiceAdapterCreator,
+			});
+			// counter for looping
+			let count = 1;
+		
+			// immediately invoked function that loops to play the bell sound 
+			(function play() {
+				console.log('playing');
+				const resource = createAudioResource('bigben.mp3');
+				const player = createAudioPlayer();
+				player.play(resource);
+				connection.subscribe(player);
 				
-			// 	if (count <= hour && MATCH_DINGS_WITH_HOUR == 'true') {
-			// 		player.play(resource);
-			// 		connection.subscribe(player);
-			// 		count += 1;
-			// 	}
-			// 	player.on(AudioPlayerStatus.Idle, () => {
-			// 		console.log(count);
-			// 		if (count <= hour && MATCH_DINGS_WITH_HOUR == 'true') {
-			// 			player.play(resource);
-			// 			connection.subscribe(player);
-			// 		} else {
-			// 			player.stop();
-			// 			connection.destroy();
-			// 			client.user.setPresence({ activities: [{ name: 'the waiting game...', }], status: 'idle' });
-			// 		}
-			// 	})
-
-			// 	player.play(resource)
-			// 	player.on(AudioPlayerStatus.Idle, () => {
-			// 		count += 1;
-			// 		console.log(count);
-			// 		if (count <= hour && MATCH_DINGS_WITH_HOUR == 'true') {
-			// 			play(client);
-			// 		} else {
-			// 			player.stop();
-			// 			connection.destroy();
-			// 			client.user.setPresence({ activities: [{ name: 'the waiting game...', }], status: 'idle' });
-			// 		}
-			// 	})
+				player.on(AudioPlayerStatus.Idle, () => {
+					connection.destroy();
+					client.user.setPresence({ activities: [{ name: 'the waiting game...', }], status: 'idle' });
+				})
 			})();
 
 		} catch(error) {
@@ -109,7 +109,6 @@ const task = cron.schedule('0 0 */1 * * *', async () => {
 		}
 	}
 });
-
 // function to get current time and return object containing
 // hour and if it is am or pm
 const getTimeInfo = () => {
